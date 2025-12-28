@@ -81,7 +81,7 @@ mod tests {
         func.add_input(Value::new("x"));
         func.add_input(Value::new("y"));
         func.add_output(Value::new("z"));
-        
+
         assert_eq!(func.num_inputs(), 2);
         assert_eq!(func.num_outputs(), 1);
     }
@@ -90,7 +90,7 @@ mod tests {
     fn test_function_opset_imports() {
         let mut func = Function::new("MyFunc", "com.example");
         func.set_opset_import("", 18);
-        
+
         assert_eq!(func.opset_imports.get(""), Some(&18));
     }
 }

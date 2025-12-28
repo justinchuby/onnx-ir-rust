@@ -108,10 +108,10 @@ mod tests {
         let mut graph = Graph::new();
         let node1 = Node::new("Add");
         let node2 = Node::new("Mul");
-        
+
         graph.append(node1);
         graph.append(node2);
-        
+
         assert_eq!(graph.num_nodes(), 2);
         assert!(!graph.is_empty());
     }
@@ -121,10 +121,10 @@ mod tests {
         let mut graph = Graph::new();
         let node1 = Node::new("Add");
         let node2 = Node::new("Mul");
-        
+
         graph.prepend(node1);
         graph.prepend(node2);
-        
+
         assert_eq!(graph.num_nodes(), 2);
     }
 
@@ -133,12 +133,12 @@ mod tests {
         let mut graph = Graph::new();
         graph.append(Node::new("Add"));
         graph.append(Node::new("Mul"));
-        
+
         let last = graph.pop_last();
         assert!(last.is_some());
         assert_eq!(last.unwrap().op_type, "Mul");
         assert_eq!(graph.num_nodes(), 1);
-        
+
         let first = graph.pop_first();
         assert!(first.is_some());
         assert_eq!(first.unwrap().op_type, "Add");
@@ -151,11 +151,11 @@ mod tests {
         graph.append(Node::new("Add"));
         graph.append(Node::new("Mul"));
         graph.append(Node::new("Sub"));
-        
+
         assert_eq!(graph.num_nodes(), 3);
-        
+
         graph.clear_nodes();
-        
+
         assert_eq!(graph.num_nodes(), 0);
         assert!(graph.is_empty());
     }
@@ -166,11 +166,9 @@ mod tests {
         graph.append(Node::new("Add"));
         graph.append(Node::new("Mul"));
         graph.append(Node::new("Sub"));
-        
-        let op_types: Vec<_> = graph.iter_nodes()
-            .map(|n| n.op_type.as_str())
-            .collect();
-        
+
+        let op_types: Vec<_> = graph.iter_nodes().map(|n| n.op_type.as_str()).collect();
+
         assert_eq!(op_types, vec!["Add", "Mul", "Sub"]);
     }
 }

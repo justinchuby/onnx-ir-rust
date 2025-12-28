@@ -38,7 +38,7 @@ impl Value {
     // Note: The following methods are stubs for future usage tracking implementation
     // when the ownership model is finalized. They are commented out to avoid
     // the forward declaration issue.
-    
+
     // /// Returns the producer node of this value, if any.
     // pub fn producer(&self) -> Option<Rc<RefCell<Node>>> {
     //     self.producer.borrow().as_ref()?.upgrade()
