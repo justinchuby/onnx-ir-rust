@@ -134,14 +134,129 @@ pub struct ExternalTensor {
     pub meta: MetadataStore,
 }
 
+impl ExternalTensor {
+    /// Creates a new external tensor.
+    pub fn new(
+        name: impl Into<String>,
+        dtype: DataType,
+        shape: Shape,
+        location: impl Into<String>,
+        base_dir: impl Into<String>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            dtype,
+            shape,
+            location: location.into(),
+            offset: None,
+            length: None,
+            base_dir: base_dir.into(),
+            doc_string: None,
+            metadata_props: HashMap::new(),
+            meta: MetadataStore::new(),
+        }
+    }
+
+    /// Sets the offset and length for the external data.
+    pub fn set_range(&mut self, offset: usize, length: usize) {
+        self.offset = Some(offset);
+        self.length = Some(length);
+    }
+}
+
+impl TensorProtocol for ExternalTensor {
+    fn name(&self) -> Option<&str> {
+        Some(&self.name)
+    }
+
+    fn shape(&self) -> &Shape {
+        &self.shape
+    }
+
+    fn dtype(&self) -> DataType {
+        self.dtype
+    }
+
+    fn doc_string(&self) -> Option<&str> {
+        self.doc_string.as_deref()
+    }
+
+    fn size(&self) -> usize {
+        self.shape.size()
+    }
+
+    fn nbytes(&self) -> usize {
+        if let Some(len) = self.length {
+            len
+        } else {
+            let itemsize = self.dtype.itemsize().unwrap_or(0.0);
+            (self.size() as f64 * itemsize).ceil() as usize
+        }
+    }
+}
+
 /// A tensor for string data.
 #[derive(Debug)]
 pub struct StringTensor {
     pub name: Option<String>,
     pub shape: Shape,
+    pub data: Vec<String>,
     pub doc_string: Option<String>,
     pub metadata_props: HashMap<String, String>,
     pub meta: MetadataStore,
+}
+
+impl StringTensor {
+    /// Creates a new string tensor.
+    pub fn new(shape: Shape, data: Vec<String>) -> Self {
+        assert_eq!(
+            data.len(),
+            shape.size(),
+            "Data length {} does not match shape size {}",
+            data.len(),
+            shape.size()
+        );
+        Self {
+            name: None,
+            shape,
+            data,
+            doc_string: None,
+            metadata_props: HashMap::new(),
+            meta: MetadataStore::new(),
+        }
+    }
+
+    /// Returns a reference to the string data.
+    pub fn as_strings(&self) -> &[String] {
+        &self.data
+    }
+}
+
+impl TensorProtocol for StringTensor {
+    fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    fn shape(&self) -> &Shape {
+        &self.shape
+    }
+
+    fn dtype(&self) -> DataType {
+        DataType::String
+    }
+
+    fn doc_string(&self) -> Option<&str> {
+        self.doc_string.as_deref()
+    }
+
+    fn size(&self) -> usize {
+        self.shape.size()
+    }
+
+    fn nbytes(&self) -> usize {
+        // For string tensors, return total byte size of all strings
+        self.data.iter().map(|s| s.len()).sum()
+    }
 }
 
 /// A lazy tensor that defers computation.
@@ -223,5 +338,52 @@ mod tests {
         
         assert_eq!(tensor.size(), 1);
         assert_eq!(tensor.nbytes(), 4);
+    }
+
+    #[test]
+    fn test_external_tensor() {
+        let shape = Shape::new(vec![10, 20]);
+        let mut ext_tensor = ExternalTensor::new(
+            "weights",
+            DataType::Float,
+            shape,
+            "weights.bin",
+            "/models",
+        );
+        
+        assert_eq!(ext_tensor.name(), Some("weights"));
+        assert_eq!(ext_tensor.dtype(), DataType::Float);
+        assert_eq!(ext_tensor.size(), 200);
+        
+        ext_tensor.set_range(0, 800);
+        assert_eq!(ext_tensor.offset, Some(0));
+        assert_eq!(ext_tensor.length, Some(800));
+        assert_eq!(ext_tensor.nbytes(), 800);
+    }
+
+    #[test]
+    fn test_string_tensor() {
+        let shape = Shape::new(vec![2, 2]);
+        let data = vec![
+            "hello".to_string(),
+            "world".to_string(),
+            "foo".to_string(),
+            "bar".to_string(),
+        ];
+        let tensor = StringTensor::new(shape, data);
+        
+        assert_eq!(tensor.dtype(), DataType::String);
+        assert_eq!(tensor.size(), 4);
+        assert_eq!(tensor.as_strings().len(), 4);
+        // hello(5) + world(5) + foo(3) + bar(3) = 16 bytes
+        assert_eq!(tensor.nbytes(), 16);
+    }
+
+    #[test]
+    #[should_panic(expected = "Data length")]
+    fn test_string_tensor_wrong_size() {
+        let shape = Shape::new(vec![2, 2]);
+        let data = vec!["hello".to_string(), "world".to_string()]; // Wrong size
+        let _tensor = StringTensor::new(shape, data);
     }
 }
