@@ -174,10 +174,12 @@ impl Value {
     ///
     /// This is useful for cleanup when nodes are removed from the graph.
     /// It removes any weak references that can no longer be upgraded.
-    pub fn prune_dead_consumers(&self) {
-        self.consumers
-            .borrow_mut()
-            .retain(|(weak, _)| weak.upgrade().is_some());
+    /// Returns the number of dead consumers removed.
+    pub fn prune_dead_consumers(&self) -> usize {
+        let mut consumers = self.consumers.borrow_mut();
+        let initial_len = consumers.len();
+        consumers.retain(|(weak, _)| weak.upgrade().is_some());
+        initial_len - consumers.len()
     }
 
     /// Replaces all uses of this value with another value.
@@ -194,8 +196,11 @@ impl Value {
     /// This does not update the producer node's output list - that must be
     /// done separately if needed.
     pub fn replace_all_uses_with(&self, replacement: &Rc<RefCell<Value>>) {
-        // Get all active consumers
+        // Get all active consumers before making any changes
         let consumers = self.consumers();
+
+        // Clear this value's consumers first to avoid borrow conflicts
+        self.clear_consumers();
 
         // Update each consumer to use the replacement value
         for (node_rc, input_idx) in consumers {
@@ -203,16 +208,15 @@ impl Value {
             if input_idx < node.inputs.len() {
                 // Update the input to point to the replacement
                 node.inputs[input_idx] = Rc::clone(replacement);
-                
-                // Add this node as a consumer of the replacement
-                replacement
-                    .borrow()
-                    .add_consumer(Rc::downgrade(&node_rc), input_idx);
             }
-        }
+            // Release the mutable borrow before borrowing replacement
+            drop(node);
 
-        // Clear this value's consumers since they now use the replacement
-        self.clear_consumers();
+            // Add this node as a consumer of the replacement
+            replacement
+                .borrow()
+                .add_consumer(Rc::downgrade(&node_rc), input_idx);
+        }
     }
 }
 
@@ -363,8 +367,9 @@ mod tests {
         // But the consumer list still has the dead reference
         assert_eq!(value.borrow().consumers.borrow().len(), 1);
 
-        // Prune dead consumers
-        value.borrow().prune_dead_consumers();
+        // Prune dead consumers - returns number of removed consumers
+        let removed = value.borrow().prune_dead_consumers();
+        assert_eq!(removed, 1);
         assert_eq!(value.borrow().consumers.borrow().len(), 0);
     }
 

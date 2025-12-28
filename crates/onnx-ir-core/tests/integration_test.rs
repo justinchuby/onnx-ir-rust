@@ -253,7 +253,8 @@ fn test_value_usage_tracking_integration() {
     drop(add_rc); // Drop the Add node
 
     // Prune dead consumers
-    constant_value.borrow().prune_dead_consumers();
+    let removed = constant_value.borrow().prune_dead_consumers();
+    assert_eq!(removed, 2); // Both uses of constant_value were from the Add node
     assert_eq!(constant_value.borrow().num_uses(), 0); // Add node is gone
 }
 
