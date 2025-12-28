@@ -51,7 +51,7 @@
 //! - [`graph`]: Graph container with mutation support
 //! - [`function`]: Function definition support
 //! - [`model`]: Top-level model container
-//! - [`serde`]: Serialization/deserialization to ONNX protobuf
+//! - `serde`: Serialization/deserialization to ONNX protobuf (planned)
 
 pub mod attribute;
 pub mod enums;
