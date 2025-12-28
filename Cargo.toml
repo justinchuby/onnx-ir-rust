@@ -1,0 +1,35 @@
+[workspace]
+members = [
+    "crates/onnx-ir-core",
+    "crates/onnx-ir-py",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["ONNX Contributors"]
+repository = "https://github.com/justinchuby/onnx-ir-rust"
+
+[workspace.dependencies]
+# Core dependencies
+prost = "0.13"
+prost-types = "0.13"
+indexmap = "2.0"
+smallvec = "1.11"
+thiserror = "1.0"
+tracing = "0.1"
+
+# Python bindings
+pyo3 = { version = "0.22", features = ["extension-module"] }
+numpy = "0.22"
+
+# Testing
+proptest = "1.4"
+criterion = "0.5"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

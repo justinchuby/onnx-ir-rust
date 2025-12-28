@@ -1,0 +1,21 @@
+[package]
+name = "onnx-ir-py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Python bindings for ONNX IR in Rust"
+
+[lib]
+name = "onnx_ir"
+crate-type = ["cdylib"]
+
+[dependencies]
+onnx-ir-core = { path = "../onnx-ir-core" }
+pyo3.workspace = true
+numpy.workspace = true
+thiserror.workspace = true
+
+[build-dependencies]
+pyo3-build-config = "0.22"
