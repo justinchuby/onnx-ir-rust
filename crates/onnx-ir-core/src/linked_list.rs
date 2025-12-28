@@ -53,21 +53,27 @@ impl<T> LinkBox<T> {
     }
 
     /// Erases the value from this link, removing it from the list.
-    fn erase(&self) {
+    fn erase(&self) -> Option<T> {
         if self.is_erased() {
-            return;
+            return None;
         }
 
-        // Update the links
-        if let Some(prev) = self.prev.take() {
-            if let Some(next) = self.next.take() {
-                prev.next.set(Some(next.clone()));
-                next.prev.set(Some(prev));
-            }
+        // Get the previous and next links without removing them from self yet
+        let prev = self.prev.replace(None);
+        let next = self.next.replace(None);
+
+        // Update the links to bypass this node
+        if let (Some(prev_link), Some(next_link)) = (&prev, &next) {
+            prev_link.next.set(Some(next_link.clone()));
+            next_link.prev.set(Some(prev_link.clone()));
         }
 
-        // Remove the value
-        *self.value.borrow_mut() = None;
+        // Restore the links on self (though they won't be used)
+        self.prev.set(prev);
+        self.next.set(next);
+
+        // Remove and return the value
+        self.value.borrow_mut().take()
     }
 }
 
@@ -161,13 +167,12 @@ impl<T> DoublyLinkedList<T> {
             return None;
         }
 
-        let last = self.root.prev.take().unwrap();
+        let last = self.root.prev.replace(None).unwrap();
         self.root.prev.set(Some(last.clone()));
         
         if !last.is_erased() && !Rc::ptr_eq(&last, &self.root) {
-            last.erase();
             self.length -= 1;
-            return last.value.borrow_mut().take();
+            return last.erase();
         }
         
         None
@@ -179,13 +184,12 @@ impl<T> DoublyLinkedList<T> {
             return None;
         }
 
-        let first = self.root.next.take().unwrap();
+        let first = self.root.next.replace(None).unwrap();
         self.root.next.set(Some(first.clone()));
         
         if !first.is_erased() && !Rc::ptr_eq(&first, &self.root) {
-            first.erase();
             self.length -= 1;
-            return first.value.borrow_mut().take();
+            return first.erase();
         }
         
         None
@@ -336,7 +340,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix pop operations in linked list
     fn test_doubly_linked_list_pop() {
         let mut list = DoublyLinkedList::new();
         
@@ -365,7 +368,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix clear operation in linked list
     fn test_doubly_linked_list_clear() {
         let mut list = DoublyLinkedList::new();
         
