@@ -104,6 +104,31 @@ impl Shape {
         self.dims.len()
     }
 
+    /// Returns the total number of elements (product of all dimensions).
+    ///
+    /// Returns 1 for scalar shapes (rank 0).
+    /// Returns `None` if any dimension is symbolic.
+    pub fn size(&self) -> usize {
+        if self.is_scalar() {
+            return 1;
+        }
+
+        let mut total = 1usize;
+        for dim in &self.dims {
+            match dim {
+                SymbolicDim::Int(v) => {
+                    total = total.saturating_mul(*v as usize);
+                }
+                SymbolicDim::Symbol(_) => {
+                    // For symbolic dimensions, we can't compute a concrete size
+                    // Return 0 as a sentinel value
+                    return 0;
+                }
+            }
+        }
+        total
+    }
+
     /// Returns true if this is a scalar (rank 0).
     pub fn is_scalar(&self) -> bool {
         self.dims.is_empty()
