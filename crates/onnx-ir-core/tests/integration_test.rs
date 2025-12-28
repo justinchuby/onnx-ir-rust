@@ -331,7 +331,9 @@ fn test_initializer_usage_tracking() {
     // Set up usage tracking
     input.borrow().add_consumer(Rc::downgrade(&matmul_rc), 0);
     weights.borrow().add_consumer(Rc::downgrade(&matmul_rc), 1);
-    output.borrow().set_producer(Some(Rc::downgrade(&matmul_rc)));
+    output
+        .borrow()
+        .set_producer(Some(Rc::downgrade(&matmul_rc)));
 
     // Verify initializer is tracked
     assert!(graph.get_initializer("weights").is_some());

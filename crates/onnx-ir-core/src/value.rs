@@ -244,9 +244,7 @@ mod tests {
         let node_rc = Rc::new(RefCell::new(node));
 
         // Set producer
-        value
-            .borrow()
-            .set_producer(Some(Rc::downgrade(&node_rc)));
+        value.borrow().set_producer(Some(Rc::downgrade(&node_rc)));
 
         // Verify producer is set
         let producer = value.borrow().producer();
@@ -268,9 +266,7 @@ mod tests {
         let node1_rc = Rc::new(RefCell::new(node1));
 
         // Add consumer
-        value
-            .borrow()
-            .add_consumer(Rc::downgrade(&node1_rc), 0);
+        value.borrow().add_consumer(Rc::downgrade(&node1_rc), 0);
 
         assert_eq!(value.borrow().num_uses(), 1);
 
@@ -279,9 +275,7 @@ mod tests {
         node2.inputs.push(Rc::clone(&value));
         let node2_rc = Rc::new(RefCell::new(node2));
 
-        value
-            .borrow()
-            .add_consumer(Rc::downgrade(&node2_rc), 0);
+        value.borrow().add_consumer(Rc::downgrade(&node2_rc), 0);
 
         assert_eq!(value.borrow().num_uses(), 2);
 
@@ -330,12 +324,8 @@ mod tests {
         node2.inputs.push(Rc::clone(&value));
         let node2_rc = Rc::new(RefCell::new(node2));
 
-        value
-            .borrow()
-            .add_consumer(Rc::downgrade(&node1_rc), 0);
-        value
-            .borrow()
-            .add_consumer(Rc::downgrade(&node2_rc), 0);
+        value.borrow().add_consumer(Rc::downgrade(&node1_rc), 0);
+        value.borrow().add_consumer(Rc::downgrade(&node2_rc), 0);
 
         assert_eq!(value.borrow().num_uses(), 2);
 
@@ -353,9 +343,7 @@ mod tests {
             node.inputs.push(Rc::clone(&value));
             let node_rc = Rc::new(RefCell::new(node));
 
-            value
-                .borrow()
-                .add_consumer(Rc::downgrade(&node_rc), 0);
+            value.borrow().add_consumer(Rc::downgrade(&node_rc), 0);
 
             assert_eq!(value.borrow().num_uses(), 1);
             // node_rc goes out of scope and is dropped
@@ -386,12 +374,8 @@ mod tests {
         let node_rc = Rc::new(RefCell::new(node));
 
         // Set up consumer tracking
-        original
-            .borrow()
-            .add_consumer(Rc::downgrade(&node_rc), 0);
-        original
-            .borrow()
-            .add_consumer(Rc::downgrade(&node_rc), 1);
+        original.borrow().add_consumer(Rc::downgrade(&node_rc), 0);
+        original.borrow().add_consumer(Rc::downgrade(&node_rc), 1);
 
         assert_eq!(original.borrow().num_uses(), 2);
         assert_eq!(replacement.borrow().num_uses(), 0);
@@ -419,9 +403,7 @@ mod tests {
             let mut node1 = Node::new("Add");
             node1.inputs.push(Rc::clone(&value));
             let node1_rc = Rc::new(RefCell::new(node1));
-            value
-                .borrow()
-                .add_consumer(Rc::downgrade(&node1_rc), 0);
+            value.borrow().add_consumer(Rc::downgrade(&node1_rc), 0);
 
             assert_eq!(value.borrow().num_uses(), 1);
         } // node1_rc dropped here
