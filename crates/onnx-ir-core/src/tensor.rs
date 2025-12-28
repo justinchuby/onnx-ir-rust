@@ -15,19 +15,19 @@ use std::collections::HashMap;
 pub trait TensorProtocol {
     /// Returns the name of the tensor.
     fn name(&self) -> Option<&str>;
-    
+
     /// Returns the shape of the tensor.
     fn shape(&self) -> &Shape;
-    
+
     /// Returns the data type of the tensor.
     fn dtype(&self) -> DataType;
-    
+
     /// Returns the documentation string.
     fn doc_string(&self) -> Option<&str>;
-    
+
     /// Returns the number of elements in the tensor.
     fn size(&self) -> usize;
-    
+
     /// Returns the number of bytes in the tensor.
     fn nbytes(&self) -> usize;
 }

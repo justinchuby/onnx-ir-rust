@@ -369,13 +369,13 @@ mod tests {
     fn test_datatype_predicates() {
         assert!(DataType::Float.is_floating_point());
         assert!(!DataType::Int32.is_floating_point());
-        
+
         assert!(DataType::Int32.is_integer());
         assert!(!DataType::Float.is_integer());
-        
+
         assert!(DataType::Int32.is_signed());
         assert!(!DataType::Uint32.is_signed());
-        
+
         assert!(DataType::String.is_string());
         assert!(!DataType::Float.is_string());
     }
@@ -388,7 +388,7 @@ mod tests {
             DataType::Bfloat16,
             DataType::Int4,
         ];
-        
+
         for dtype in types {
             let short = dtype.short_name();
             assert_eq!(DataType::from_short_name(short), Some(dtype));
