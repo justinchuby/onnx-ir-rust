@@ -207,7 +207,7 @@ pub struct PackedTensor { /* sub-byte */ }
 
 #### 8. Value with Usage Tracking
 
-**Design**: Value owns its metadata, tracks producer/consumers.
+**Design**: Value uses interior mutability for usage tracking with Rc/Weak references.
 
 ```rust
 pub struct Value {
@@ -216,6 +216,9 @@ pub struct Value {
     pub type_: Option<TensorType>,
     pub metadata_props: HashMap<String, String>,
     pub meta: MetadataStore,
+    // Usage tracking with interior mutability
+    producer: RefCell<Option<Weak<RefCell<Node>>>>,
+    consumers: RefCell<Vec<(Weak<RefCell<Node>>, usize)>>,
 }
 ```
 
@@ -223,24 +226,106 @@ pub struct Value {
 - Values are always named in a graph
 - Shape and type are optional (may be unknown)
 - Metadata for serialization vs. passes
-- Usage tracking (producer, consumers) to be added
+- Interior mutability (RefCell) allows tracking updates without mutable reference
+- Weak references prevent circular ownership (Graph → Node → Value → Node cycles)
+- Consumer tracking includes input index for precise replacement
 
-**Future Work**:
-- Add producer: Option<Weak<Node>>
-- Add consumers: Vec<(Weak<Node>, usize)>
-- Implement replace_all_uses_with
+**Design Decision: Ownership Model for Values**
+
+Three options were considered:
+
+**Option 1: Direct Ownership (Current Stub)**
+```rust
+pub struct Node {
+    pub inputs: Vec<Value>,
+    pub outputs: Vec<Value>,
+}
+```
+Pros:
+- Simple ownership model
+- No reference counting overhead
+- Clear ownership semantics
+
+Cons:
+- Cannot track usage (producer/consumers)
+- Cannot share values between nodes
+- Values copied when passed between nodes
+- No way to implement replace_all_uses_with
+- **REJECTED**: Doesn't meet ONNX IR requirements
+
+**Option 2: Rc<Value> with Interior Mutability**
+```rust
+pub struct Node {
+    pub inputs: Vec<Rc<Value>>,
+    pub outputs: Vec<Rc<Value>>,
+}
+pub struct Value {
+    // ... fields
+    producer: RefCell<Option<Weak<RefCell<Node>>>>,
+    consumers: RefCell<Vec<(Weak<RefCell<Node>>, usize)>>,
+}
+```
+Pros:
+- Shared ownership allows multiple nodes to reference same value
+- Can track all users (producer + consumers)
+- Supports replace_all_uses_with operation
+- Interior mutability allows updates without &mut
+- Matches ir-py semantics
+
+Cons:
+- Runtime overhead from Rc reference counting
+- Runtime borrow checking with RefCell (can panic)
+- More complex ownership model
+- **SELECTED**: Best fit for ONNX IR requirements
+
+**Option 3: Arena-based with IDs**
+```rust
+pub struct Graph {
+    values: Arena<Value>,
+    nodes: Arena<Node>,
+}
+pub struct Node {
+    pub inputs: Vec<ValueId>,
+    pub outputs: Vec<ValueId>,
+}
+```
+Pros:
+- No reference counting overhead
+- Predictable memory layout
+- Easy serialization (IDs map to indices)
+
+Cons:
+- Lifetime complexity (nodes tied to graph lifetime)
+- Cannot move values between graphs easily
+- Requires ID indirection for all access
+- Less ergonomic API
+- **REJECTED**: Lifetime constraints too restrictive
+
+**Selected Approach: Option 2 (Rc<RefCell<Value>>)**
+
+This provides the necessary flexibility for graph transformations while maintaining correctness:
+1. Values can be shared across multiple nodes
+2. Usage tracking enables optimization passes
+3. replace_all_uses_with enables IR transformation
+4. Interior mutability matches Python's mutation model
+5. Runtime checks prevent use-after-free
+
+**Trade-offs Accepted**:
+- Runtime reference counting cost (acceptable for IR manipulation)
+- RefCell borrow checking overhead (prevents bugs, worth the cost)
+- Slightly more complex API (necessary for correctness)
 
 #### 9. Node
 
-**Design**: Node owns its attributes, references values.
+**Design**: Node owns its attributes, holds Rc references to values.
 
 ```rust
 pub struct Node {
     pub name: Option<String>,
     pub domain: String,
     pub op_type: String,
-    pub inputs: Vec<Value>,
-    pub outputs: Vec<Value>,
+    pub inputs: Vec<Rc<RefCell<Value>>>,
+    pub outputs: Vec<Rc<RefCell<Value>>>,
     pub attributes: IndexMap<String, Attr>,
     // ...
 }
@@ -250,11 +335,15 @@ pub struct Node {
 - IndexMap preserves attribute order
 - Domain + op_type + overload identify operator
 - Version allows mixed opsets
-- Values are owned (may change to Rc)
+- Rc<RefCell<Value>> enables shared ownership and usage tracking
+- Node wrapped in RefCell when stored in graph for mutation
 
-**Current Issues**:
-- Ownership model needs refinement
-- Should inputs/outputs be Rc<Value>?
+**Usage Tracking Integration**:
+When a node is created and values are assigned:
+1. Node increments Rc count by holding reference
+2. Value's producer/consumer list updated via RefCell
+3. Weak references prevent cycles (Value -Weak-> Node)
+4. Allows efficient replace_all_uses_with operations
 
 #### 10. Graph
 
@@ -334,22 +423,67 @@ pub trait ValueProtocol {
 
 ### Ownership Strategy
 
-**Model → Graph → Nodes → Values**
+**Finalized Ownership Model:**
 
-- Model owns Graph
-- Graph owns Nodes (via DoublyLinkedList)
-- Nodes reference Values (Rc or direct ownership TBD)
-- Values may share Tensors (Rc)
+```
+Model → Graph → Rc<RefCell<Node>> → Rc<RefCell<Value>>
+                     ↓ (Weak)              ↓ (Weak)
+                     Node ← - - - - - - - Value
+```
+
+**Detailed Design**:
+
+1. **Model owns Graph**: Single ownership, no sharing
+2. **Graph owns Nodes**: Via DoublyLinkedList<Rc<RefCell<Node>>>
+   - Rc allows nodes to be referenced during iteration
+   - RefCell enables mutation while iterating
+3. **Nodes hold Rc<RefCell<Value>>**: Shared ownership
+   - Multiple nodes can reference same value
+   - RefCell allows usage tracking updates
+4. **Values hold Weak<RefCell<Node>>**: Non-owning back-references
+   - Prevents ownership cycles
+   - Enables producer/consumer tracking
+   - Automatically cleared when node is dropped
+
+**Ownership Invariants**:
+
+1. Graph is the source of truth for node lifetime
+2. Values outlive their users only while Rc references exist
+3. No value can exist without being in some node's input/output
+4. Weak references never prevent node garbage collection
+5. Usage tracking is always consistent with actual references
+
+**Memory Safety Guarantees**:
+
+1. No use-after-free: Weak references check validity before access
+2. No data races: RefCell provides runtime borrow checking
+3. No memory leaks: No Rc cycles (only Rc → Weak)
+4. Deterministic cleanup: When node dropped, Weak refs invalidate
 
 ### Reference Counting
 
-Use Rc for shared ownership:
+**Rc for shared ownership:**
 - Tensors (may be referenced by multiple values)
-- Values (may be used by multiple nodes)
+- Values (referenced by multiple nodes)
+- Nodes (held in graph, may be referenced during iteration)
 
-Use Weak for non-owning references:
-- Node → producer (back-reference)
-- Value → consumers (back-references)
+**Weak for non-owning references:**
+- Value → Node (producer back-reference)
+- Value → Node (consumer back-references)
+- Prevents cycles in ownership graph
+
+**Design Rationale**:
+
+The key insight is that the ownership graph must be acyclic:
+- Graph → Node: Strong (Rc), Graph owns nodes
+- Node → Value: Strong (Rc), Nodes share values
+- Value → Node: Weak (Weak), Prevents cycles
+
+This ensures:
+1. When a graph is dropped, all nodes are dropped
+2. When all nodes using a value are dropped, value is dropped
+3. No reference cycles, no memory leaks
+4. Values can track their users without preventing cleanup
 
 ### Interior Mutability
 

@@ -93,23 +93,37 @@ cargo doc --open
 ### Usage Example
 
 ```rust
-use onnx_ir_core::{Graph, Node, Value, DataType, Shape};
+use onnx_ir_core::{Graph, Node, Value, node_add_input, node_add_output};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 // Create a new graph
 let mut graph = Graph::new();
 graph.name = Some("example_graph".to_string());
 
-// Create values
-let input = Value::new("input");
-let output = Value::new("output");
+// Create values with shared ownership
+let input_x = Rc::new(RefCell::new(Value::new("x")));
+let input_y = Rc::new(RefCell::new(Value::new("y")));
+let output = Rc::new(RefCell::new(Value::new("sum")));
 
-// Create a node
-let mut node = Node::new("Add");
-node.inputs = vec![input];
-node.outputs = vec![output];
+// Add inputs to graph
+graph.add_input(Rc::clone(&input_x));
+graph.add_input(Rc::clone(&input_y));
 
-// Add node to graph
-graph.nodes.push_back(node);
+// Create an Add node and wrap it in Rc<RefCell<>>
+let node = Rc::new(RefCell::new(Node::new("Add")));
+
+// Add inputs and outputs with automatic producer/consumer tracking
+node_add_input(&node, &input_x);
+node_add_input(&node, &input_y);
+node_add_output(&node, &output);
+
+// Add output to graph
+graph.add_output(Rc::clone(&output));
+
+// Verify usage tracking is automatically set up
+assert_eq!(input_x.borrow().num_uses(), 1);
+assert_eq!(output.borrow().producer().is_some(), true);
 ```
 
 ## Python Bindings

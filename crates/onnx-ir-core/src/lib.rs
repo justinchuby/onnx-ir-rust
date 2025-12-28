@@ -74,7 +74,7 @@ pub use function::Function;
 pub use graph::{Graph, GraphView};
 pub use metadata::MetadataStore;
 pub use model::Model;
-pub use node::Node;
+pub use node::{node_add_input, node_add_output, Node};
 pub use shape::{Shape, SymbolicDim};
 pub use tensor::{ExternalTensor, LazyTensor, PackedTensor, StringTensor, Tensor};
 pub use types::{OptionalType, SequenceType, SparseTensorType, TensorType};

@@ -47,7 +47,9 @@ pub struct Tensor {
 impl Tensor {
     /// Creates a new tensor with the given data type and shape.
     pub fn new(dtype: DataType, shape: Shape) -> Self {
-        let size = shape.size().expect("Shape must not contain symbolic dimensions");
+        let size = shape
+            .size()
+            .expect("Shape must not contain symbolic dimensions");
         let itemsize = dtype.itemsize().expect("Data type must have a known size");
         let nbytes = (size as f64 * itemsize).ceil() as usize;
         Self {
@@ -63,7 +65,9 @@ impl Tensor {
 
     /// Creates a new tensor from raw bytes.
     pub fn from_bytes(dtype: DataType, shape: Shape, data: Vec<u8>) -> Self {
-        let size = shape.size().expect("Shape must not contain symbolic dimensions");
+        let size = shape
+            .size()
+            .expect("Shape must not contain symbolic dimensions");
         let itemsize = dtype.itemsize().expect("Data type must have a known size");
         let expected_nbytes = (size as f64 * itemsize).ceil() as usize;
         assert_eq!(
@@ -212,7 +216,9 @@ pub struct StringTensor {
 impl StringTensor {
     /// Creates a new string tensor.
     pub fn new(shape: Shape, data: Vec<String>) -> Self {
-        let size = shape.size().expect("Shape must not contain symbolic dimensions");
+        let size = shape
+            .size()
+            .expect("Shape must not contain symbolic dimensions");
         assert_eq!(
             data.len(),
             size,
@@ -295,7 +301,7 @@ mod tests {
     fn test_tensor_new() {
         let shape = Shape::new(vec![2, 3]);
         let tensor = Tensor::new(DataType::Float, shape.clone());
-        
+
         assert_eq!(tensor.dtype, DataType::Float);
         assert_eq!(tensor.shape, shape);
         assert_eq!(tensor.size(), 6);
@@ -307,7 +313,7 @@ mod tests {
         let shape = Shape::new(vec![2, 2]);
         let data = vec![0u8; 16]; // 4 floats * 4 bytes
         let tensor = Tensor::from_bytes(DataType::Float, shape.clone(), data);
-        
+
         assert_eq!(tensor.dtype, DataType::Float);
         assert_eq!(tensor.shape, shape);
         assert_eq!(tensor.as_bytes().len(), 16);
@@ -327,7 +333,7 @@ mod tests {
         let mut tensor = Tensor::new(DataType::Int32, shape);
         tensor.name = Some("test_tensor".to_string());
         tensor.doc_string = Some("A test tensor".to_string());
-        
+
         assert_eq!(tensor.name(), Some("test_tensor"));
         assert_eq!(tensor.dtype(), DataType::Int32);
         assert_eq!(tensor.size(), 12);
@@ -339,7 +345,7 @@ mod tests {
     fn test_tensor_scalar() {
         let shape = Shape::scalar();
         let tensor = Tensor::new(DataType::Float, shape);
-        
+
         assert_eq!(tensor.size(), 1);
         assert_eq!(tensor.nbytes(), 4);
     }
@@ -347,18 +353,13 @@ mod tests {
     #[test]
     fn test_external_tensor() {
         let shape = Shape::new(vec![10, 20]);
-        let mut ext_tensor = ExternalTensor::new(
-            "weights",
-            DataType::Float,
-            shape,
-            "weights.bin",
-            "/models",
-        );
-        
+        let mut ext_tensor =
+            ExternalTensor::new("weights", DataType::Float, shape, "weights.bin", "/models");
+
         assert_eq!(ext_tensor.name(), Some("weights"));
         assert_eq!(ext_tensor.dtype(), DataType::Float);
         assert_eq!(ext_tensor.size(), 200);
-        
+
         ext_tensor.set_range(0, 800);
         assert_eq!(ext_tensor.offset, Some(0));
         assert_eq!(ext_tensor.length, Some(800));
@@ -375,7 +376,7 @@ mod tests {
             "bar".to_string(),
         ];
         let tensor = StringTensor::new(shape, data);
-        
+
         assert_eq!(tensor.dtype(), DataType::String);
         assert_eq!(tensor.size(), 4);
         assert_eq!(tensor.as_strings().len(), 4);

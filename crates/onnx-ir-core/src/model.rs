@@ -73,7 +73,7 @@ mod tests {
     fn test_model_new() {
         let graph = Graph::new();
         let model = Model::new(graph);
-        
+
         assert_eq!(model.ir_version, 9);
         assert!(model.functions.is_empty());
     }
@@ -82,10 +82,10 @@ mod tests {
     fn test_model_opset_imports() {
         let graph = Graph::new();
         let mut model = Model::new(graph);
-        
+
         model.set_opset_import("", 18);
         model.set_opset_import("com.example", 1);
-        
+
         assert_eq!(model.get_opset_version(""), Some(18));
         assert_eq!(model.get_opset_version("com.example"), Some(1));
         assert_eq!(model.get_opset_version("unknown"), None);
@@ -95,10 +95,10 @@ mod tests {
     fn test_model_functions() {
         let graph = Graph::new();
         let mut model = Model::new(graph);
-        
+
         let func = Function::new("MyFunc", "com.example");
         model.add_function(func);
-        
+
         assert!(model.get_function("com.example", "MyFunc").is_some());
         assert!(model.get_function("com.example", "Unknown").is_none());
     }
