@@ -74,6 +74,10 @@ impl Node {
 
     /// Adds an input value to the node.
     ///
+    /// **Note**: This method does not automatically set up producer/consumer tracking.
+    /// Use the helper function `node_add_input()` with the node's `Rc<RefCell<Node>>` 
+    /// wrapper for automatic tracking, or call this method and manually set up tracking.
+    ///
     /// # Example
     ///
     /// ```
@@ -91,6 +95,10 @@ impl Node {
     }
 
     /// Adds an output value to the node.
+    ///
+    /// **Note**: This method does not automatically set up producer/consumer tracking.
+    /// Use the helper function `node_add_output()` with the node's `Rc<RefCell<Node>>` 
+    /// wrapper for automatic tracking, or call this method and manually set up tracking.
     ///
     /// # Example
     ///
@@ -137,6 +145,65 @@ impl Node {
     pub fn has_attributes(&self) -> bool {
         !self.attributes.is_empty()
     }
+}
+
+/// Helper function to add an input value to a node with automatic consumer tracking.
+///
+/// This function adds the input value to the node and automatically registers
+/// the node as a consumer of the value, matching the behavior of onnx/ir-py.
+///
+/// # Arguments
+///
+/// * `node` - The node wrapped in `Rc<RefCell<Node>>`
+/// * `value` - The input value to add
+///
+/// # Example
+///
+/// ```
+/// use onnx_ir_core::{Node, Value, node_add_input};
+/// use std::rc::Rc;
+/// use std::cell::RefCell;
+///
+/// let node = Rc::new(RefCell::new(Node::new("Add")));
+/// let value = Rc::new(RefCell::new(Value::new("input")));
+/// node_add_input(&node, &value);
+///
+/// assert_eq!(node.borrow().num_inputs(), 1);
+/// assert_eq!(value.borrow().num_uses(), 1);
+/// ```
+pub fn node_add_input(node: &Rc<RefCell<Node>>, value: &Rc<RefCell<Value>>) {
+    let input_index = node.borrow().inputs.len();
+    node.borrow_mut().add_input(Rc::clone(value));
+    value.borrow().add_consumer(Rc::downgrade(node), input_index);
+}
+
+/// Helper function to add an output value to a node with automatic producer tracking.
+///
+/// This function adds the output value to the node and automatically sets
+/// the node as the producer of the value, matching the behavior of onnx/ir-py.
+///
+/// # Arguments
+///
+/// * `node` - The node wrapped in `Rc<RefCell<Node>>`
+/// * `value` - The output value to add
+///
+/// # Example
+///
+/// ```
+/// use onnx_ir_core::{Node, Value, node_add_output};
+/// use std::rc::Rc;
+/// use std::cell::RefCell;
+///
+/// let node = Rc::new(RefCell::new(Node::new("Add")));
+/// let value = Rc::new(RefCell::new(Value::new("output")));
+/// node_add_output(&node, &value);
+///
+/// assert_eq!(node.borrow().num_outputs(), 1);
+/// assert!(value.borrow().producer().is_some());
+/// ```
+pub fn node_add_output(node: &Rc<RefCell<Node>>, value: &Rc<RefCell<Value>>) {
+    node.borrow_mut().add_output(Rc::clone(value));
+    value.borrow().set_producer(Some(Rc::downgrade(node)));
 }
 
 #[cfg(test)]

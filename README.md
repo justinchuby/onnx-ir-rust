@@ -93,7 +93,7 @@ cargo doc --open
 ### Usage Example
 
 ```rust
-use onnx_ir_core::{Graph, Node, Value};
+use onnx_ir_core::{Graph, Node, Value, node_add_input, node_add_output};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -110,22 +110,18 @@ let output = Rc::new(RefCell::new(Value::new("sum")));
 graph.add_input(Rc::clone(&input_x));
 graph.add_input(Rc::clone(&input_y));
 
-// Create an Add node
-let mut add_node = Node::new("Add");
-add_node.add_input(Rc::clone(&input_x));
-add_node.add_input(Rc::clone(&input_y));
-add_node.add_output(Rc::clone(&output));
+// Create an Add node and wrap it in Rc<RefCell<>>
+let node = Rc::new(RefCell::new(Node::new("Add")));
 
-// Set up usage tracking
-let add_rc = Rc::new(RefCell::new(add_node));
-input_x.borrow().add_consumer(Rc::downgrade(&add_rc), 0);
-input_y.borrow().add_consumer(Rc::downgrade(&add_rc), 1);
-output.borrow().set_producer(Some(Rc::downgrade(&add_rc)));
+// Add inputs and outputs with automatic producer/consumer tracking
+node_add_input(&node, &input_x);
+node_add_input(&node, &input_y);
+node_add_output(&node, &output);
 
 // Add output to graph
 graph.add_output(Rc::clone(&output));
 
-// Verify usage tracking
+// Verify usage tracking is automatically set up
 assert_eq!(input_x.borrow().num_uses(), 1);
 assert_eq!(output.borrow().producer().is_some(), true);
 ```
