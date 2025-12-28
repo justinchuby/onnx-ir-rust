@@ -6,7 +6,13 @@
 use crate::metadata::MetadataStore;
 use crate::shape::Shape;
 use crate::types::TensorType;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::{Rc, Weak};
+
+// Forward declaration for Node to avoid circular dependency
+// In practice, Node will be defined in node.rs
+pub struct Node;
 
 /// A value represents an input or output of a node or graph.
 #[derive(Debug)]
@@ -17,6 +23,9 @@ pub struct Value {
     pub doc_string: Option<String>,
     pub metadata_props: HashMap<String, String>,
     pub meta: MetadataStore,
+    // Usage tracking
+    producer: RefCell<Option<Weak<RefCell<Node>>>>,
+    consumers: RefCell<Vec<(Weak<RefCell<Node>>, usize)>>,
 }
 
 impl Value {
@@ -28,6 +37,90 @@ impl Value {
             doc_string: None,
             metadata_props: HashMap::new(),
             meta: MetadataStore::new(),
+            producer: RefCell::new(None),
+            consumers: RefCell::new(Vec::new()),
         }
+    }
+
+    /// Returns the producer node of this value, if any.
+    pub fn producer(&self) -> Option<Rc<RefCell<Node>>> {
+        self.producer.borrow().as_ref()?.upgrade()
+    }
+
+    /// Sets the producer node of this value.
+    pub fn set_producer(&self, producer: Option<Weak<RefCell<Node>>>) {
+        *self.producer.borrow_mut() = producer;
+    }
+
+    /// Returns the consumer nodes and their input indices.
+    pub fn consumers(&self) -> Vec<(Rc<RefCell<Node>>, usize)> {
+        self.consumers
+            .borrow()
+            .iter()
+            .filter_map(|(weak, idx)| weak.upgrade().map(|rc| (rc, *idx)))
+            .collect()
+    }
+
+    /// Adds a consumer node.
+    pub fn add_consumer(&self, consumer: Weak<RefCell<Node>>, input_index: usize) {
+        self.consumers.borrow_mut().push((consumer, input_index));
+    }
+
+    /// Removes a consumer node.
+    pub fn remove_consumer(&self, consumer: &Weak<RefCell<Node>>) {
+        self.consumers.borrow_mut().retain(|(c, _)| {
+            // Compare by pointer equality
+            !Weak::ptr_eq(c, consumer)
+        });
+    }
+
+    /// Clears all consumers.
+    pub fn clear_consumers(&self) {
+        self.consumers.borrow_mut().clear();
+    }
+
+    /// Returns the number of consumers (uses).
+    pub fn num_uses(&self) -> usize {
+        self.consumers
+            .borrow()
+            .iter()
+            .filter(|(weak, _)| weak.upgrade().is_some())
+            .count()
+    }
+
+    /// Replaces all uses of this value with another value.
+    /// This is a placeholder that would need access to the graph structure
+    /// to properly update all node inputs.
+    pub fn replace_all_uses_with(&self, _other: &Value) {
+        // This would require iterating through all consumers and updating their inputs
+        // In practice, this would be implemented at the Graph level
+        todo!("replace_all_uses_with requires graph-level coordination")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_value_new() {
+        let value = Value::new("test_value");
+        assert_eq!(value.name, "test_value");
+        assert!(value.shape.is_none());
+        assert!(value.type_.is_none());
+        assert_eq!(value.num_uses(), 0);
+    }
+
+    #[test]
+    fn test_value_producer() {
+        let value = Value::new("test_value");
+        assert!(value.producer().is_none());
+    }
+
+    #[test]
+    fn test_value_consumers() {
+        let value = Value::new("test_value");
+        assert_eq!(value.consumers().len(), 0);
+        assert_eq!(value.num_uses(), 0);
     }
 }

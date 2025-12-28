@@ -33,7 +33,7 @@ pub trait TensorProtocol {
 }
 
 /// A concrete tensor with in-memory data.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tensor {
     pub name: Option<String>,
     pub dtype: DataType,
