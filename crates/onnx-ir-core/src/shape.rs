@@ -108,9 +108,9 @@ impl Shape {
     ///
     /// Returns 1 for scalar shapes (rank 0).
     /// Returns `None` if any dimension is symbolic.
-    pub fn size(&self) -> usize {
+    pub fn size(&self) -> Option<usize> {
         if self.is_scalar() {
-            return 1;
+            return Some(1);
         }
 
         let mut total = 1usize;
@@ -120,13 +120,12 @@ impl Shape {
                     total = total.saturating_mul(*v as usize);
                 }
                 SymbolicDim::Symbol(_) => {
-                    // For symbolic dimensions, we can't compute a concrete size
-                    // Return 0 as a sentinel value
-                    return 0;
+                    // Symbolic dimensions mean we can't compute a concrete size
+                    return None;
                 }
             }
         }
-        total
+        Some(total)
     }
 
     /// Returns true if this is a scalar (rank 0).
@@ -230,6 +229,27 @@ mod tests {
 
         shape.freeze();
         assert!(shape.is_frozen());
+    }
+
+    #[test]
+    fn test_shape_size() {
+        let shape = Shape::new(vec![2, 3, 4]);
+        assert_eq!(shape.size(), Some(24));
+
+        let scalar = Shape::scalar();
+        assert_eq!(scalar.size(), Some(1));
+    }
+
+    #[test]
+    fn test_symbolic_shape_size() {
+        use super::SymbolicDim;
+        
+        let mut shape = Shape::new(vec![2, 3]);
+        assert_eq!(shape.size(), Some(6));
+
+        // Set one dimension to symbolic
+        shape.set_dim(1, SymbolicDim::Symbol(Some("N".to_string())));
+        assert_eq!(shape.size(), None); // Should return None for symbolic dimensions
     }
 
     #[test]

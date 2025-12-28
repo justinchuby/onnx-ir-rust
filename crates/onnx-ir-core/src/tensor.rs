@@ -47,8 +47,9 @@ pub struct Tensor {
 impl Tensor {
     /// Creates a new tensor with the given data type and shape.
     pub fn new(dtype: DataType, shape: Shape) -> Self {
+        let size = shape.size().expect("Shape must not contain symbolic dimensions");
         let itemsize = dtype.itemsize().expect("Data type must have a known size");
-        let nbytes = (shape.size() as f64 * itemsize).ceil() as usize;
+        let nbytes = (size as f64 * itemsize).ceil() as usize;
         Self {
             name: None,
             dtype,
@@ -62,8 +63,9 @@ impl Tensor {
 
     /// Creates a new tensor from raw bytes.
     pub fn from_bytes(dtype: DataType, shape: Shape, data: Vec<u8>) -> Self {
+        let size = shape.size().expect("Shape must not contain symbolic dimensions");
         let itemsize = dtype.itemsize().expect("Data type must have a known size");
-        let expected_nbytes = (shape.size() as f64 * itemsize).ceil() as usize;
+        let expected_nbytes = (size as f64 * itemsize).ceil() as usize;
         assert_eq!(
             data.len(),
             expected_nbytes,
@@ -111,7 +113,7 @@ impl TensorProtocol for Tensor {
     }
 
     fn size(&self) -> usize {
-        self.shape.size()
+        self.shape.size().unwrap_or(0)
     }
 
     fn nbytes(&self) -> usize {
@@ -182,7 +184,7 @@ impl TensorProtocol for ExternalTensor {
     }
 
     fn size(&self) -> usize {
-        self.shape.size()
+        self.shape.size().unwrap_or(0)
     }
 
     fn nbytes(&self) -> usize {
@@ -209,12 +211,13 @@ pub struct StringTensor {
 impl StringTensor {
     /// Creates a new string tensor.
     pub fn new(shape: Shape, data: Vec<String>) -> Self {
+        let size = shape.size().expect("Shape must not contain symbolic dimensions");
         assert_eq!(
             data.len(),
-            shape.size(),
+            size,
             "Data length {} does not match shape size {}",
             data.len(),
-            shape.size()
+            size
         );
         Self {
             name: None,
@@ -250,7 +253,7 @@ impl TensorProtocol for StringTensor {
     }
 
     fn size(&self) -> usize {
-        self.shape.size()
+        self.shape.size().unwrap_or(0)
     }
 
     fn nbytes(&self) -> usize {
