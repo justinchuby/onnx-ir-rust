@@ -93,23 +93,41 @@ cargo doc --open
 ### Usage Example
 
 ```rust
-use onnx_ir_core::{Graph, Node, Value, DataType, Shape};
+use onnx_ir_core::{Graph, Node, Value};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 // Create a new graph
 let mut graph = Graph::new();
 graph.name = Some("example_graph".to_string());
 
-// Create values
-let input = Value::new("input");
-let output = Value::new("output");
+// Create values with shared ownership
+let input_x = Rc::new(RefCell::new(Value::new("x")));
+let input_y = Rc::new(RefCell::new(Value::new("y")));
+let output = Rc::new(RefCell::new(Value::new("sum")));
 
-// Create a node
-let mut node = Node::new("Add");
-node.inputs = vec![input];
-node.outputs = vec![output];
+// Add inputs to graph
+graph.add_input(Rc::clone(&input_x));
+graph.add_input(Rc::clone(&input_y));
 
-// Add node to graph
-graph.nodes.push_back(node);
+// Create an Add node
+let mut add_node = Node::new("Add");
+add_node.add_input(Rc::clone(&input_x));
+add_node.add_input(Rc::clone(&input_y));
+add_node.add_output(Rc::clone(&output));
+
+// Set up usage tracking
+let add_rc = Rc::new(RefCell::new(add_node));
+input_x.borrow().add_consumer(Rc::downgrade(&add_rc), 0);
+input_y.borrow().add_consumer(Rc::downgrade(&add_rc), 1);
+output.borrow().set_producer(Some(Rc::downgrade(&add_rc)));
+
+// Add output to graph
+graph.add_output(Rc::clone(&output));
+
+// Verify usage tracking
+assert_eq!(input_x.borrow().num_uses(), 1);
+assert_eq!(output.borrow().producer().is_some(), true);
 ```
 
 ## Python Bindings
