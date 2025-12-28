@@ -53,32 +53,32 @@
 //! - [`model`]: Top-level model container
 //! - [`serde`]: Serialization/deserialization to ONNX protobuf
 
-pub mod enums;
-pub mod metadata;
-pub mod name_authority;
-pub mod linked_list;
-pub mod shape;
-pub mod types;
-pub mod tensor;
-pub mod value;
 pub mod attribute;
-pub mod node;
-pub mod graph;
+pub mod enums;
 pub mod function;
+pub mod graph;
+pub mod linked_list;
+pub mod metadata;
 pub mod model;
+pub mod name_authority;
+pub mod node;
+pub mod shape;
+pub mod tensor;
+pub mod types;
+pub mod value;
 
 // Re-export commonly used types
-pub use enums::{AttributeType, DataType};
-pub use metadata::MetadataStore;
-pub use shape::{Shape, SymbolicDim};
-pub use tensor::{Tensor, ExternalTensor, StringTensor, LazyTensor, PackedTensor};
-pub use types::{TensorType, OptionalType, SequenceType, SparseTensorType};
-pub use value::Value;
 pub use attribute::{Attr, RefAttr};
-pub use node::Node;
-pub use graph::{Graph, GraphView};
+pub use enums::{AttributeType, DataType};
 pub use function::Function;
+pub use graph::{Graph, GraphView};
+pub use metadata::MetadataStore;
 pub use model::Model;
+pub use node::Node;
+pub use shape::{Shape, SymbolicDim};
+pub use tensor::{ExternalTensor, LazyTensor, PackedTensor, StringTensor, Tensor};
+pub use types::{OptionalType, SequenceType, SparseTensorType, TensorType};
+pub use value::Value;
 
 /// Version of the ONNX IR implementation
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

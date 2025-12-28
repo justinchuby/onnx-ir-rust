@@ -13,7 +13,7 @@ use std::fmt;
 pub trait Type: fmt::Debug {
     /// Returns the denotation of the type.
     fn denotation(&self) -> Option<&str>;
-    
+
     /// Returns the data type if this is a tensor-like type.
     fn dtype(&self) -> Option<DataType>;
 }
@@ -40,7 +40,7 @@ impl Type for TensorType {
     fn denotation(&self) -> Option<&str> {
         self.denotation.as_deref()
     }
-    
+
     fn dtype(&self) -> Option<DataType> {
         Some(self.elem_type)
     }
@@ -66,7 +66,7 @@ impl Type for SparseTensorType {
     fn denotation(&self) -> Option<&str> {
         self.denotation.as_deref()
     }
-    
+
     fn dtype(&self) -> Option<DataType> {
         Some(self.elem_type)
     }

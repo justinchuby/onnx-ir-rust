@@ -33,7 +33,11 @@ pub struct RefAttr {
 }
 
 impl RefAttr {
-    pub fn new(name: impl Into<String>, ref_attr_name: impl Into<String>, type_: AttributeType) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        ref_attr_name: impl Into<String>,
+        type_: AttributeType,
+    ) -> Self {
         Self {
             name: name.into(),
             ref_attr_name: ref_attr_name.into(),

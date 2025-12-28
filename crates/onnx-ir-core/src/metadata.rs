@@ -150,11 +150,11 @@ mod tests {
     #[test]
     fn test_metadata_store_basic() {
         let mut meta = MetadataStore::new();
-        
+
         meta.insert("x", 42i32);
         assert_eq!(meta.get::<i32>("x"), Some(&42));
         assert!(meta.is_valid("x"));
-        
+
         meta.insert("y", "hello".to_string());
         assert_eq!(meta.get::<String>("y"), Some(&"hello".to_string()));
     }
@@ -162,14 +162,14 @@ mod tests {
     #[test]
     fn test_metadata_store_invalidate() {
         let mut meta = MetadataStore::new();
-        
+
         meta.insert("shape", vec![1, 2, 3]);
         assert!(meta.is_valid("shape"));
-        
+
         meta.invalidate("shape");
         assert!(!meta.is_valid("shape"));
         assert!(meta.contains_key("shape"));
-        
+
         // Re-inserting should mark as valid
         meta.insert("shape", vec![4, 5, 6]);
         assert!(meta.is_valid("shape"));
@@ -178,7 +178,7 @@ mod tests {
     #[test]
     fn test_metadata_store_type_mismatch() {
         let mut meta = MetadataStore::new();
-        
+
         meta.insert("x", 42i32);
         assert_eq!(meta.get::<i64>("x"), None);
     }
@@ -186,10 +186,10 @@ mod tests {
     #[test]
     fn test_metadata_store_remove() {
         let mut meta = MetadataStore::new();
-        
+
         meta.insert("x", 42i32);
         meta.invalidate("x");
-        
+
         let value = meta.remove::<i32>("x");
         assert_eq!(value, Some(42));
         assert!(!meta.contains_key("x"));
@@ -200,11 +200,11 @@ mod tests {
     #[test]
     fn test_metadata_store_clear() {
         let mut meta = MetadataStore::new();
-        
+
         meta.insert("x", 42);
         meta.insert("y", 43);
         meta.invalidate("x");
-        
+
         meta.clear();
         assert!(meta.is_empty());
         assert_eq!(meta.len(), 0);

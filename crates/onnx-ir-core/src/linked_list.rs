@@ -124,11 +124,8 @@ impl<T> DoublyLinkedList<T> {
         let root = LinkBox::sentinel();
         root.prev.set(Some(root.clone()));
         root.next.set(Some(root.clone()));
-        
-        Self {
-            root,
-            length: 0,
-        }
+
+        Self { root, length: 0 }
     }
 
     /// Returns the number of elements in the list.
@@ -163,13 +160,13 @@ impl<T> DoublyLinkedList<T> {
 
         let last = self.root.prev.take().unwrap();
         self.root.prev.set(Some(last.clone()));
-        
+
         if !last.is_erased() && !Rc::ptr_eq(&last, &self.root) {
             last.erase();
             self.length -= 1;
             return last.value.borrow_mut().take();
         }
-        
+
         None
     }
 
@@ -181,13 +178,13 @@ impl<T> DoublyLinkedList<T> {
 
         let first = self.root.next.take().unwrap();
         self.root.next.set(Some(first.clone()));
-        
+
         if !first.is_erased() && !Rc::ptr_eq(&first, &self.root) {
             first.erase();
             self.length -= 1;
             return first.value.borrow_mut().take();
         }
-        
+
         None
     }
 
@@ -199,7 +196,7 @@ impl<T> DoublyLinkedList<T> {
 
         let first = self.root.next.replace(None)?;
         self.root.next.set(Some(first.clone()));
-        
+
         unsafe {
             // SAFETY: We know the value exists if the list is not empty
             // and we're returning a reference with the same lifetime as self
@@ -215,7 +212,7 @@ impl<T> DoublyLinkedList<T> {
 
         let last = self.root.prev.replace(None)?;
         self.root.prev.set(Some(last.clone()));
-        
+
         unsafe {
             // SAFETY: We know the value exists if the list is not empty
             // and we're returning a reference with the same lifetime as self
@@ -232,7 +229,7 @@ impl<T> DoublyLinkedList<T> {
     pub fn iter(&self) -> Iter<'_, T> {
         let next = self.root.next.replace(None);
         self.root.next.set(next.clone());
-        
+
         Iter {
             current: next,
             root: self.root.clone(),
@@ -279,7 +276,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let current = self.current.clone()?;
-            
+
             // Check if we've circled back to the root
             if Rc::ptr_eq(&current, &self.root) {
                 return None;
@@ -309,14 +306,14 @@ mod tests {
     #[test]
     fn test_doubly_linked_list_basic() {
         let mut list = DoublyLinkedList::new();
-        
+
         assert!(list.is_empty());
         assert_eq!(list.len(), 0);
-        
+
         list.push_back(1);
         list.push_back(2);
         list.push_back(3);
-        
+
         assert_eq!(list.len(), 3);
         assert_eq!(list.front(), Some(&1));
         assert_eq!(list.back(), Some(&3));
@@ -325,11 +322,11 @@ mod tests {
     #[test]
     fn test_doubly_linked_list_push_front() {
         let mut list = DoublyLinkedList::new();
-        
+
         list.push_front(1);
         list.push_front(2);
         list.push_front(3);
-        
+
         assert_eq!(list.len(), 3);
         assert_eq!(list.front(), Some(&3));
         assert_eq!(list.back(), Some(&1));
@@ -339,27 +336,27 @@ mod tests {
     #[ignore] // TODO: Fix pop operations in linked list
     fn test_doubly_linked_list_pop() {
         let mut list = DoublyLinkedList::new();
-        
+
         list.push_back(1);
         list.push_back(2);
         list.push_back(3);
-        
+
         assert_eq!(list.pop_front(), Some(1));
         assert_eq!(list.pop_back(), Some(3));
         assert_eq!(list.pop_front(), Some(2));
         assert_eq!(list.pop_front(), None);
-        
+
         assert!(list.is_empty());
     }
 
     #[test]
     fn test_doubly_linked_list_iter() {
         let mut list = DoublyLinkedList::new();
-        
+
         list.push_back(1);
         list.push_back(2);
         list.push_back(3);
-        
+
         let collected: Vec<_> = list.iter().copied().collect();
         assert_eq!(collected, vec![1, 2, 3]);
     }
@@ -368,13 +365,13 @@ mod tests {
     #[ignore] // TODO: Fix clear operation in linked list
     fn test_doubly_linked_list_clear() {
         let mut list = DoublyLinkedList::new();
-        
+
         list.push_back(1);
         list.push_back(2);
         list.push_back(3);
-        
+
         list.clear();
-        
+
         assert!(list.is_empty());
         assert_eq!(list.len(), 0);
     }

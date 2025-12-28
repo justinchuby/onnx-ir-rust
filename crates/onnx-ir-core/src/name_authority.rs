@@ -159,10 +159,10 @@ mod tests {
     #[test]
     fn test_unique_value_name() {
         let mut authority = NameAuthority::new();
-        
+
         let name1 = authority.unique_value_name(None);
         let name2 = authority.unique_value_name(None);
-        
+
         assert_eq!(name1, "val_0");
         assert_eq!(name2, "val_1");
         assert_ne!(name1, name2);
@@ -171,10 +171,10 @@ mod tests {
     #[test]
     fn test_unique_value_name_preferred() {
         let mut authority = NameAuthority::new();
-        
+
         let name1 = authority.unique_value_name(Some("my_val"));
         assert_eq!(name1, "my_val");
-        
+
         let name2 = authority.unique_value_name(Some("my_val"));
         assert_eq!(name2, "val_0");
     }
@@ -182,10 +182,10 @@ mod tests {
     #[test]
     fn test_unique_node_name() {
         let mut authority = NameAuthority::new();
-        
+
         let name1 = authority.unique_node_name("Add", None);
         let name2 = authority.unique_node_name("Mul", None);
-        
+
         assert_eq!(name1, "node_Add_0");
         assert_eq!(name2, "node_Mul_1");
     }
@@ -193,10 +193,10 @@ mod tests {
     #[test]
     fn test_unique_node_name_preferred() {
         let mut authority = NameAuthority::new();
-        
+
         let name1 = authority.unique_node_name("Add", Some("my_add"));
         assert_eq!(name1, "my_add");
-        
+
         let name2 = authority.unique_node_name("Add", Some("my_add"));
         assert_eq!(name2, "node_Add_0");
     }
@@ -204,11 +204,11 @@ mod tests {
     #[test]
     fn test_register_names() {
         let mut authority = NameAuthority::new();
-        
+
         assert!(authority.register_value_name("existing".to_string()));
         assert!(!authority.register_value_name("existing".to_string()));
         assert!(authority.has_value_name("existing"));
-        
+
         let new_name = authority.unique_value_name(Some("existing"));
         assert_eq!(new_name, "val_0");
     }
@@ -216,18 +216,18 @@ mod tests {
     #[test]
     fn test_clear() {
         let mut authority = NameAuthority::new();
-        
+
         authority.unique_value_name(None);
         authority.unique_node_name("Add", None);
-        
+
         assert_eq!(authority.value_name_count(), 1);
         assert_eq!(authority.node_name_count(), 1);
-        
+
         authority.clear();
-        
+
         assert_eq!(authority.value_name_count(), 0);
         assert_eq!(authority.node_name_count(), 0);
-        
+
         // Counters should be reset
         let name = authority.unique_value_name(None);
         assert_eq!(name, "val_0");
