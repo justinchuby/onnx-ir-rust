@@ -112,6 +112,7 @@ impl TensorProtocol for Tensor {
         self.doc_string.as_deref()
     }
 
+    /// Returns the number of elements. Returns 0 for symbolic shapes.
     fn size(&self) -> usize {
         self.shape.size().unwrap_or(0)
     }
