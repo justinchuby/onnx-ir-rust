@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn test_symbolic_shape_size() {
         use super::SymbolicDim;
-        
+
         let mut shape = Shape::new(vec![2, 3]);
         assert_eq!(shape.size(), Some(6));
 

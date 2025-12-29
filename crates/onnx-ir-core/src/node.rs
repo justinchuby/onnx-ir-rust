@@ -86,7 +86,7 @@ impl Node {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::attribute::{Attr, AttrValue};
+    use crate::attribute::Attr;
 
     #[test]
     fn test_node_new() {
@@ -102,7 +102,7 @@ mod tests {
         node.add_input(Value::new("x"));
         node.add_input(Value::new("y"));
         node.add_output(Value::new("z"));
-        
+
         assert_eq!(node.num_inputs(), 2);
         assert_eq!(node.num_outputs(), 1);
     }
@@ -110,18 +110,18 @@ mod tests {
     #[test]
     fn test_node_attributes() {
         let mut node = Node::new("Conv");
-        
+
         assert!(!node.has_attributes());
-        
+
         node.set_attribute(Attr::int("axis", 0));
         node.set_attribute(Attr::float("alpha", 0.5));
-        
+
         assert!(node.has_attributes());
         assert_eq!(node.attributes.len(), 2);
-        
+
         let attr = node.get_attribute("axis");
         assert!(attr.is_some());
-        
+
         let removed = node.remove_attribute("axis");
         assert!(removed.is_some());
         assert_eq!(node.attributes.len(), 1);
