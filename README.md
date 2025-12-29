@@ -1,5 +1,8 @@
 # ONNX IR Rust
 
+> [!WARNING]
+> This project is purely experimental, built primarily by Copilot.
+
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 An in-memory Intermediate Representation (IR) for ONNX models in Rust, inspired by the [onnx/ir-py](https://github.com/onnx/ir-py) project.
